@@ -316,42 +316,56 @@ def wait_for_yes_confirm(timeout: float = TIMEOUT_YES_CONFIRM) -> tuple:
 
 
 # ============================================================
-#  TAP BUTTON — coba Vision dulu, fallback ke recorded_touches
+#  TAP BUTTON — koordinat SELALU dari Groq Vision
 # ============================================================
 
 def tap_button(label: str, detection: dict = None):
     """
     Tap tombol berdasarkan label.
-    Prioritas:
-      1. Koordinat dari hasil detection Claude (jika tersedia & valid)
-      2. Fallback dari recorded_touches.json
+
+    Alur:
+    1. Pakai koordinat dari hasil deteksi Groq (detection dict)
+    2. Kalau detection tidak ada / koordinat 0 → ambil screenshot baru,
+       minta Groq deteksi ulang, pakai koordinatnya
+    3. Fallback terakhir: koordinat hardcoded dari recorded_touches.json
 
     label: "play_solo" | "continue" | "close_x" | "yes_confirm"
     """
-    # Map label ke key di detection result
     key_map = {
         "play_solo":   "play_solo",
         "continue":    "continue_btn",
         "close_x":     "close_x",
         "yes_confirm": "yes_btn",
-        "play_again":  "play_solo",  # sama lokasinya
+        "play_again":  "play_solo",
     }
 
     vision_key = key_map.get(label)
-    tapped = False
 
-    # Coba dari detection Claude
+    # ── Coba dari detection yang sudah ada ───────────────────
     if detection and vision_key:
         btn = detection.get(vision_key, {})
         x, y = btn.get("x", 0), btn.get("y", 0)
         if x > 0 and y > 0:
-            tap(x, y, label=f"vision:{label}")
-            tapped = True
+            print(f"[Vision] 👆 Tap [{label}] dari deteksi Groq → ({x}, {y})")
+            tap(x, y, label=f"groq:{label}")
+            return
 
-    # Fallback recorded_touches
-    if not tapped:
-        print(f"[Vision] ⚠️  Koordinat '{label}' dari Vision tidak valid, pakai fallback")
-        tap_recorded(label)
+    # ── Groq deteksi ulang dari screenshot baru ──────────────
+    print(f"[Vision] 🔄 '{label}' tidak ada di detection, ambil screenshot baru...")
+    b64 = screencap_base64(save_debug=False)
+    if b64:
+        fresh = detect_state(b64, level_hint=_active_level)
+        if vision_key:
+            btn = fresh.get(vision_key, {})
+            x, y = btn.get("x", 0), btn.get("y", 0)
+            if x > 0 and y > 0:
+                print(f"[Vision] 👆 Tap [{label}] dari deteksi ulang Groq → ({x}, {y})")
+                tap(x, y, label=f"groq-fresh:{label}")
+                return
+
+    # ── Fallback terakhir: recorded_touches.json ─────────────
+    print(f"[Vision] ⚠️  Groq tidak bisa temukan '{label}', pakai fallback koordinat")
+    tap_recorded(label)
 
 
 # ============================================================
