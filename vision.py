@@ -21,51 +21,42 @@ Kamu adalah AI yang membantu memainkan game Golf Billiard di OutiePutt (app.outi
 Analisis screenshot game ini dan tentukan:
 
 1. **STATE** game saat ini — pilih salah satu:
-   - "ready_to_shoot"  : bola putih terlihat, siap ditembak
-   - "ball_moving"     : bola sedang bergerak
-   - "hole_complete"   : bola masuk hole, ada tombol Next/Continue
-   - "game_complete"   : game selesai semua hole
-   - "loading"         : layar loading / transisi
-   - "start_screen"    : layar awal/menu, belum mulai
+   - "menu"            : layar menu utama, ada tombol PLAY SOLO / MULTIPLAYER
+   - "ready_to_shoot"  : sudah di dalam game, bola putih terlihat, siap ditembak
+   - "ball_moving"     : bola sedang bergerak/rolling
+   - "hole_complete"   : bola masuk hole, muncul tombol Next/Continue
+   - "game_complete"   : game selesai semua hole, ada skor akhir
+   - "loading"         : layar loading / transisi / spinner
 
-2. **BALL_POSITION** (hanya jika state = "ready_to_shoot"):
+2. **PLAY_SOLO_BUTTON** (hanya jika state = "menu"):
+   - x dan y koordinat tombol "PLAY SOLO" atau "SOLO" atau "1 Player"
+   - Cari tombol yang artinya main sendiri (bukan multiplayer)
+
+3. **BALL_POSITION** (hanya jika state = "ready_to_shoot"):
    - x dan y dalam pixel posisi TENGAH bola putih
 
-3. **HOLE_POSITION** (hanya jika state = "ready_to_shoot"):
-   - x dan y dalam pixel posisi TENGAH lubang (hole/cup) yang harus dimasukkan
-   - Biasanya lubang berwarna gelap/hitam atau ada bendera kecil
+4. **HOLE_POSITION** (hanya jika state = "ready_to_shoot"):
+   - x dan y dalam pixel posisi TENGAH lubang (hole/cup) target
+   - Lubang biasanya berwarna gelap/hitam/cokelat, atau ada bendera kecil
 
-4. **NEXT_BUTTON** (hanya jika state = "hole_complete" atau "game_complete"):
+5. **NEXT_BUTTON** (hanya jika state = "hole_complete" atau "game_complete"):
    - x dan y koordinat tombol Next/Continue/Play Again
 
-5. **SHOT_POWER** (hanya jika state = "ready_to_shoot"):
+6. **SHOT_POWER** (hanya jika state = "ready_to_shoot"):
    - Nilai 0.1 sampai 1.0
-   - Hitung dari jarak bola ke hole relatif terhadap ukuran layar
+   - Hitung dari jarak bola ke hole relatif ukuran layar
    - Dekat = 0.2, Sedang = 0.5, Jauh = 0.8
 
-6. **NOTES**: Observasi penting (rintangan, sudut sulit, dll)
+7. **NOTES**: Observasi penting (rintangan, cushion/pantulan, dll)
 
 Balas HANYA dengan JSON berikut (tidak ada teks lain):
 {
   "state": "...",
+  "play_solo_button": {"x": 0, "y": 0},
   "ball": {"x": 0, "y": 0},
   "hole": {"x": 0, "y": 0},
   "next_button": {"x": 0, "y": 0},
   "shot_power": 0.5,
-  "notes": "..."
-}
-"""
-
-START_PROMPT = """
-Kamu adalah AI yang membantu memainkan game Golf Billiard di OutiePutt.
-
-Lihat screenshot ini. Ini adalah layar awal/menu game.
-Temukan tombol START, PLAY, atau NEW GAME.
-
-Balas HANYA dengan JSON:
-{
-  "button": {"x": 0, "y": 0},
-  "label": "nama tombol yang kamu lihat",
   "notes": "..."
 }
 """
@@ -119,45 +110,7 @@ def analyze_screen(screenshot_b64: str, screen_w: int, screen_h: int) -> dict:
         return {"state": "error", "notes": str(e)}
 
 
-def find_start_button(screenshot_b64: str) -> dict:
-    """
-    Khusus mencari tombol START di layar awal.
-    Return dict dengan koordinat tombol.
-    """
-    print("[Vision] Mencari tombol START...")
 
-    try:
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=200,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/png",
-                                "data": screenshot_b64,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": START_PROMPT
-                        }
-                    ],
-                }
-            ],
-        )
-
-        raw = response.content[0].text.strip()
-        print(f"[Vision] Tombol START: {raw}")
-        return parse_json_response(raw)
-
-    except Exception as e:
-        print(f"[Vision] ERROR find_start_button: {e}")
-        return {"button": {"x": 0, "y": 0}, "notes": str(e)}
 
 
 def parse_json_response(text: str) -> dict:

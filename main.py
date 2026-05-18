@@ -16,8 +16,7 @@ from config import (
     TOTAL_HOLES, MAX_SHOTS_HOLE,
     DELAY_AFTER_SHOT, DELAY_HOLE_TRANSITION,
     DELAY_GAME_LOAD, DELAY_SCREENSHOT,
-    SWIPE_DURATION_MS, MIN_DRAG_PX, MAX_DRAG_PX,
-    GAME_URL
+    SWIPE_DURATION_MS, MIN_DRAG_PX, MAX_DRAG_PX
 )
 
 
@@ -60,21 +59,17 @@ def get_analysis(screen_w: int, screen_h: int) -> dict:
 #  GAME STATES
 # ============================================================
 
-def handle_start_screen(screen_w: int, screen_h: int):
-    """Klik tombol START di layar awal."""
-    print("\n▶️  Layar START terdeteksi — mencari tombol Play...")
-    b64 = adb.screencap_base64()
-    result = vision.find_start_button(b64)
-
-    btn = result.get("button", {})
-    x, y = btn.get("x", screen_w // 2), btn.get("y", int(screen_h * 0.75))
+def handle_menu(analysis: dict, screen_w: int, screen_h: int):
+    """Klik tombol PLAY SOLO di layar menu."""
+    btn = analysis.get("play_solo_button", {})
+    x, y = btn.get("x", 0), btn.get("y", 0)
 
     if x == 0 and y == 0:
-        # Fallback: tap tengah bawah layar
-        x, y = screen_w // 2, int(screen_h * 0.75)
-        print(f"⚠️  Koordinat tombol tidak terdeteksi, tap fallback ({x},{y})")
+        # Fallback koordinat tengah layar
+        x, y = screen_w // 2, int(screen_h * 0.6)
+        print(f"⚠️  Tombol PLAY SOLO tidak terdeteksi, tap fallback ({x},{y})")
     else:
-        print(f"✅ Tombol '{result.get('label', 'START')}' di ({x},{y})")
+        print(f"✅ Tombol PLAY SOLO ditemukan di ({x},{y})")
 
     adb.tap(x, y)
     time.sleep(DELAY_GAME_LOAD)
@@ -149,11 +144,10 @@ def play_game():
     # 3. Jaga layar tetap nyala
     adb.keep_screen_on()
 
-    # 4. Buka game di Chrome
-    print(f"\n🌐 Membuka {GAME_URL}...")
-    adb.open_url(GAME_URL)
-    print(f"⏳ Tunggu {DELAY_GAME_LOAD}s untuk game load...")
-    time.sleep(DELAY_GAME_LOAD)
+    # 4. Langsung screenshot — game harus sudah terbuka di HP!
+    print("\n📸 Screenshot layar HP sekarang...")
+    print("⚠️  Pastikan game OutiePutt sudah terbuka di HP!\n")
+    time.sleep(1)
 
     # 5. Statistik
     stats = {
@@ -167,7 +161,7 @@ def play_game():
     max_errors = 5
     hole_shot_count = 0
 
-    print("\n🎮 Mulai main!\n")
+    print("🎮 Mulai scan layar...\n")
 
     while stats["holes_completed"] < TOTAL_HOLES:
         # Ambil screenshot dan analisis
@@ -178,7 +172,7 @@ def play_game():
 
         # ── Handle tiap state ──────────────────────────────
 
-        if state == "error" or state == "parse_error":
+        if state in ("error", "parse_error"):
             consecutive_errors += 1
             print(f"⚠️  Error #{consecutive_errors}: {analysis.get('notes')}")
             if consecutive_errors >= max_errors:
@@ -194,15 +188,15 @@ def play_game():
             time.sleep(2)
             continue
 
-        if state == "start_screen":
-            handle_start_screen(screen_w, screen_h)
+        if state == "menu":
+            print("\n🏠 Menu terdeteksi — klik PLAY SOLO...")
+            handle_menu(analysis, screen_w, screen_h)
             hole_shot_count = 0
             continue
 
         if state == "ready_to_shoot":
             if hole_shot_count >= MAX_SHOTS_HOLE:
                 print(f"⚠️  Maks {MAX_SHOTS_HOLE} tembakan tercapai, paksa Next Hole")
-                # Paksa tap next (mungkin ada tombol skip)
                 adb.tap(screen_w // 2, int(screen_h * 0.8))
                 time.sleep(DELAY_HOLE_TRANSITION)
                 stats["scores"].append(hole_shot_count)

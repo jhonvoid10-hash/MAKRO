@@ -13,7 +13,6 @@ DEVICE_SERIAL   = None           # None = otomatis, atau isi: "emulator-5554" / 
 # --- GAME ---
 TOTAL_HOLES     = 9              # Jumlah hole dalam satu game
 MAX_SHOTS_HOLE  = 6              # Maksimal tembakan per hole sebelum skip
-GAME_URL        = "https://app.outieputt.com/"
 
 # --- DELAY (detik) ---
 DELAY_AFTER_SHOT       = 2.5    # Tunggu bola berhenti
