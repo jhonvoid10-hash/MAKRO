@@ -32,10 +32,13 @@ from adb_utils      import (load_recorded_touches, tap, swipe,
                              execute_shot, keep_screen_on,
                              get_devices, get_screen_size)
 from vision_utils   import (wait_for_play_solo, wait_for_game_ready,
+                             wait_for_game_ready_at_level,
                              wait_for_continue, wait_for_yes_confirm,
-                             tap_button, get_current_state)
-from shot_candidates import get_candidate, total_candidates, get_candidates
-from config         import CLAUDE_API_KEY
+                             tap_button, get_current_state,
+                             set_active_level)
+from shot_candidates  import get_candidate, total_candidates, get_candidates
+from level_mapping    import get_hint_text, get_mapping, is_timing_sensitive
+from config           import CLAUDE_API_KEY
 
 # ── Konstanta ────────────────────────────────────────────────
 TOTAL_LEVELS    = 18
@@ -138,9 +141,15 @@ def do_play_solo() -> bool:
 
 
 def do_wait_game_ready(level_hint: int = 0) -> bool:
-    """Tunggu sampai game/level ready (meja terlihat, bola ada)."""
+    """
+    Tunggu sampai game/level ready (meja terlihat, bola ada).
+    Inject level_hint ke Claude prompt via set_active_level.
+    """
     label = f"GAME READY (Level {level_hint})" if level_hint else "GAME READY"
-    ok, _ = wait_for_game_ready(timeout=25)
+    if level_hint:
+        ok, _ = wait_for_game_ready_at_level(level_hint, timeout=25)
+    else:
+        ok, _ = wait_for_game_ready(timeout=25)
     if not ok:
         print(f"[Train] ❌ {label} timeout!")
         return False
@@ -293,21 +302,37 @@ def train_level(level: int, start_candidate_idx: int = 0) -> tuple:
       ("abort", -1)              — user abort (Ctrl+C / q)
     """
     candidates = get_candidates(level)
-    n = len(candidates)
+    n          = len(candidates)
 
     if n == 0:
         print(f"[Train] ⚠️  Level {level} tidak punya kandidat shot!")
         return ("skip_all", -1)
 
+    # ── Tampilkan mapping hint sekali di awal level ──────────
+    mapping = get_mapping(level)
+    print(f"\n{'█'*55}")
+    print(f"  🗺️  LEVEL {level} — [{mapping.get('strategy','?').upper()}]")
+    print(f"{'─'*55}")
+    print(get_hint_text(level))
+    if is_timing_sensitive(level):
+        print(f"  ⏱️  PERHATIAN: Level ini SENSITIF TIMING — perhatikan animasi obstacle!")
+    print(f"{'█'*55}")
+
     idx = start_candidate_idx
 
     while idx < n:
-        cand = candidates[idx]
+        cand    = candidates[idx]
+        strat   = cand.get("strategy", mapping.get("strategy", "?"))
+        portal  = cand.get("uses_portal", False)
+        portal_s = " 🌀[PORTAL]" if portal else ""
+
         print(f"\n{'='*55}")
         print(f"  Training Level {level}  |  Kandidat {idx+1}/{n}")
-        print(f"  Note: {cand.get('note', '-')}")
-        print(f"  Shot: ({cand['start_x']},{cand['start_y']}) → "
-              f"({cand['end_x']},{cand['end_y']}) | {cand.get('duration_ms',850)}ms")
+        print(f"  Strategi  : {strat}{portal_s}")
+        print(f"  Note      : {cand.get('note', '-')}")
+        print(f"  Shot      : ({cand['start_x']},{cand['start_y']}) → "
+              f"({cand['end_x']},{cand['end_y']}) | {cand.get('duration_ms', 850)}ms")
+        print(f"  Reverse   : {cand.get('reverse', True)}")
         print(f"{'='*55}")
 
         # Eksekusi tembakan
@@ -318,14 +343,16 @@ def train_level(level: int, start_candidate_idx: int = 0) -> tuple:
         while True:
             try:
                 answer = input(
-                    f"\n  Level {level} Kandidat {idx+1}: Berhasil? [y/n/q]: "
+                    f"\n  Level {level} Kandidat {idx+1}/{n} [{strat}]: "
+                    f"Berhasil? [y/n/q]: "
                 ).strip().lower()
             except (EOFError, KeyboardInterrupt):
                 print("\n[Train] ⚠️  Abort oleh user.")
                 return ("abort", -1)
 
             if answer == "y":
-                print(f"\n[Train] ✅ Kandidat {idx+1} BERHASIL! Menyimpan best shot...")
+                print(f"\n[Train] ✅ Kandidat {idx+1} BERHASIL!")
+                print(f"         Strategi: {strat}{portal_s}")
                 save_best_shot(level, cand, idx)
 
                 # Tunggu CONTINUE (bola sudah masuk)
@@ -339,9 +366,10 @@ def train_level(level: int, start_candidate_idx: int = 0) -> tuple:
                 return ("success", idx)
 
             elif answer == "n":
-                print(f"\n[Train] ❌ Kandidat {idx+1} GAGAL. Recovery & coba kandidat berikutnya...")
+                print(f"\n[Train] ❌ Kandidat {idx+1} GAGAL [{strat}{portal_s}].")
+                print(f"         Recover & coba kandidat {idx+2}/{n}...")
                 idx += 1
-                return ("retry", idx)  # signal ke caller untuk recover & retry
+                return ("retry", idx)
 
             elif answer == "q":
                 print("[Train] ⏹️  Training dihentikan oleh user.")
@@ -350,7 +378,8 @@ def train_level(level: int, start_candidate_idx: int = 0) -> tuple:
             else:
                 print("  Ketik y (berhasil), n (gagal), atau q (berhenti)")
 
-    print(f"[Train] ⚠️  Semua {n} kandidat Level {level} sudah dicoba.")
+    print(f"\n[Train] ⚠️  Semua {n} kandidat Level {level} sudah dicoba.")
+    print(f"         Tambahkan kandidat baru ke shot_candidates.py jika diperlukan.")
     return ("skip_all", -1)
 
 
@@ -408,6 +437,7 @@ def training_loop(start_level: int = 1):
 
         # ── Level belum punya best shot — mulai training ────
         print(f"\n[Train] 🎯 Training Level {current_level}...")
+        set_active_level(current_level)   # inject level context ke Claude prompt
 
         # Pastikan kita berada di level ini
         if first_run:
@@ -499,16 +529,26 @@ def _ensure_at_level(target_level: int, candidate_idx: dict) -> bool:
 
 
 def _print_summary():
-    """Tampilkan ringkasan best shot yang sudah tersimpan."""
-    print("\n📊 Best Shot Summary:")
+    """Tampilkan ringkasan best shot dan mapping strategi yang sudah tersimpan."""
+    from level_mapping import get_mapping
+    print("\n📊 Best Shot + Strategy Summary:")
+    print(f"  {'Lvl':>3}  {'Status':8}  {'Strategy':30}  {'Shot':35}  {'Saved'}")
+    print(f"  {'─'*3}  {'─'*8}  {'─'*30}  {'─'*35}  {'─'*10}")
     for lvl in range(1, TOTAL_LEVELS + 1):
-        data = load_best_shot(lvl)
+        data    = load_best_shot(lvl)
+        mapping = get_mapping(lvl)
+        strat   = mapping.get("strategy", "?")
         if data:
-            s = data.get("adb_scaled_shot") or data.get("best_shot", {})
-            print(f"  Level {lvl:2d} ✅  ({s.get('start_x')},{s.get('start_y')}) → "
-                  f"({s.get('end_x')},{s.get('end_y')}) | {s.get('duration_ms')}ms")
+            s       = data.get("adb_scaled_shot") or data.get("best_shot", {})
+            shot_s  = (f"({s.get('start_x')},{s.get('start_y')})"
+                       f"→({s.get('end_x')},{s.get('end_y')})"
+                       f"|{s.get('duration_ms')}ms")
+            saved   = data.get("saved_at", "")[:10]
+            portal  = " 🌀" if data.get("adb_scaled_shot", {}).get("uses_portal") else ""
+            print(f"  {lvl:>3}  ✅ done   {strat:30}  {shot_s:35}  {saved}{portal}")
         else:
-            print(f"  Level {lvl:2d} ⬜  (belum ada best shot)")
+            cands = total_candidates(lvl)
+            print(f"  {lvl:>3}  ⬜ todo   {strat:30}  {'(belum ada)':35}  [{cands} kandidat]")
 
 
 # ============================================================
@@ -528,7 +568,16 @@ def main():
         "--summary", action="store_true",
         help="Hanya tampilkan summary best shot yang sudah tersimpan"
     )
+    parser.add_argument(
+        "--mapping", action="store_true",
+        help="Tampilkan mapping strategi semua level lalu keluar"
+    )
     args = parser.parse_args()
+
+    if args.mapping:
+        from level_mapping import print_all_mappings
+        print_all_mappings()
+        return
 
     if args.summary:
         _print_summary()
