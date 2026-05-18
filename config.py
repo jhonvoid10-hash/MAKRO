@@ -2,9 +2,14 @@
 #  config.py — Konfigurasi OutiePutt AI Vision Bot
 # ============================================================
 
-# --- CLAUDE API ---
-CLAUDE_API_KEY = "sk-ant-XXXXXXXXXXXXXXXXXXXXXXXX"  # Ganti dengan API key kamu
-CLAUDE_MODEL   = "claude-opus-4-5"                    # Model Claude yang dipakai
+# --- KIRO / CLAUDE API ---
+# Isi dengan API key dari Kiro (ksk_...) atau Anthropic (sk-ant-...)
+CLAUDE_API_KEY = "ksk_XXXXXXXXXXXXXXXXXXXXXXXX"   # Ganti dengan ksk_... dari Kiro Settings → API Keys
+CLAUDE_MODEL   = "claude-opus-4-5"                # Model Claude yang dipakai
+
+# Kiro API endpoint (compatible dengan Anthropic SDK)
+# Kalau pakai Kiro key (ksk_...), set ini. Kalau Anthropic langsung, kosongkan.
+CLAUDE_BASE_URL = "https://api.kiro.dev/v1"       # Endpoint Kiro API
 
 # --- ADB ---
 ADB_PATH        = "adb"          # Kalau adb tidak di PATH, isi full path: "C:/platform-tools/adb.exe"

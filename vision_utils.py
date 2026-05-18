@@ -8,16 +8,20 @@
 #    detect_state(b64, level_hint) -> dict
 # ============================================================
 
-import anthropic
 import json
 import re
 import time
 
-from config        import CLAUDE_API_KEY, CLAUDE_MODEL
+from config        import CLAUDE_API_KEY, CLAUDE_MODEL, CLAUDE_BASE_URL
 from adb_utils     import wait_for_ui, screencap_base64, tap, tap_recorded
 from level_mapping import get_prompt_context, get_mapping
 
-client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+# Inisialisasi client — support Kiro API (ksk_...) dan Anthropic (sk-ant-...)
+import anthropic as _anthropic
+if CLAUDE_BASE_URL:
+    client = _anthropic.Anthropic(api_key=CLAUDE_API_KEY, base_url=CLAUDE_BASE_URL)
+else:
+    client = _anthropic.Anthropic(api_key=CLAUDE_API_KEY)
 
 # ── Timeout per kondisi ──────────────────────────────────────
 TIMEOUT_PLAY_SOLO   = 20
