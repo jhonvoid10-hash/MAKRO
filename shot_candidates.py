@@ -648,12 +648,42 @@ def total_candidates(level: int) -> int:
     return len(get_candidates(level))
 
 
+def next_candidate(level: int, tried: set) -> tuple:
+    """
+    Return (index, candidate) kandidat berikutnya yang belum dicoba.
+    tried: set of int (index yang sudah dicoba).
+    Return (None, None) jika semua kandidat sudah dicoba.
+    """
+    candidates = get_candidates(level)
+    for i, cand in enumerate(candidates):
+        if i not in tried:
+            return i, cand
+    return None, None
+
+
+def candidates_exhausted(level: int, tried: set) -> bool:
+    """Return True jika semua kandidat sudah dicoba."""
+    return len(tried) >= total_candidates(level)
+
+
 def add_candidate(level: int, shot: dict):
     """Tambahkan kandidat baru ke level tertentu (runtime)."""
     if level not in CANDIDATES:
         CANDIDATES[level] = []
     CANDIDATES[level].append(shot)
     print(f"[Candidates] ✅ Kandidat baru ditambahkan ke Level {level}: {shot.get('note', '')}")
+
+
+def get_strategy_summary(level: int) -> str:
+    """Return satu baris ringkasan strategi + jumlah kandidat."""
+    mapping = get_mapping(level)
+    n       = total_candidates(level)
+    strat   = mapping.get("strategy", "?")
+    power   = mapping.get("power", "?")
+    portal  = mapping.get("uses_portal", False)
+    portal_s = f" | portal={'yes' if portal is True else ('maybe' if portal == 'maybe' else 'no')}"
+    return (f"Level {level:2d} | strategy={strat:30s} | power={power:12s}"
+            f"{portal_s} | candidates={n}")
 
 
 def get_strategy_summary(level: int) -> str:

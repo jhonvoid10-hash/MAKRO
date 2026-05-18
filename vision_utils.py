@@ -44,20 +44,28 @@ def set_active_level(level: int):
 # ============================================================
 
 _DETECT_PROMPT_BASE = """
-Kamu adalah AI yang menganalisis screenshot game billiard/golf web (app.outieputt.com).
+Kamu adalah AI vision yang menganalisis screenshot game billiard/golf 2D di browser Android
+(app.outieputt.com). Game ini mirip mini-golf berbasis billiard — bola putih ditembak
+dengan cara drag/swipe, dan harus masuk ke lubang (hole) yang ditandai bendera/flag.
 
-Identifikasi state layar saat ini dan kembalikan JSON.
+ATURAN ANALISIS:
+1. Bola tidak bisa melompat atau menembus obstacle/dinding.
+2. Jalur yang valid adalah jalur di mana bola bisa menggelinding tanpa tertabrak obstacle.
+3. Jangan anggap semua lubang gelap sebagai target — hanya yang BERFLAG atau ditandai jelas.
+4. Sertakan koordinat tombol yang terlihat di layar saat ini.
+
+Identifikasi state layar dan kembalikan JSON.
 
 State yang mungkin:
-- "lobby"        : layar lobby/menu utama. Ada tombol PLAY SOLO atau JOIN.
-- "game_ready"   : game sudah dimuat, meja billiard terlihat, bola putih ada, siap tembak.
-- "ball_moving"  : bola sedang bergerak/rolling, belum berhenti.
-- "continue"     : bola sudah masuk hole, muncul tombol CONTINUE atau NEXT.
-- "yes_confirm"  : popup konfirmasi keluar game. Ada tombol YES/CONFIRM dan NO/CANCEL.
-- "loading"      : layar loading, spinner, atau transisi.
-- "other"        : layar lain yang tidak dikenali.
+- "lobby"        : layar lobby/menu utama, ada tombol PLAY SOLO atau JOIN GAME.
+- "game_ready"   : meja billiard/golf terlihat, bola putih ada di meja, siap tembak.
+- "ball_moving"  : bola sedang bergerak, belum berhenti.
+- "continue"     : bola masuk hole, muncul tombol CONTINUE / NEXT / NEXT LEVEL.
+- "yes_confirm"  : popup konfirmasi keluar, ada tombol YES/CONFIRM dan NO/CANCEL.
+- "loading"      : layar loading, spinner, transisi antar level.
+- "other"        : layar lain.
 
-Untuk setiap tombol yang relevan, berikan koordinat x,y TENGAH tombol (pixel).
+Koordinat semua tombol dalam pixel (tengah tombol).
 
 Balas HANYA JSON ini (tanpa teks lain):
 {
@@ -66,39 +74,62 @@ Balas HANYA JSON ini (tanpa teks lain):
   "continue_btn": {"x": 0, "y": 0, "visible": false},
   "close_x":      {"x": 0, "y": 0, "visible": false},
   "yes_btn":      {"x": 0, "y": 0, "visible": false},
+  "ball_pos":     {"x": 0, "y": 0},
+  "hole_pos":     {"x": 0, "y": 0},
   "level_number": 0,
+  "obstacle_warning": "",
   "notes": "..."
 }
 """
 
 _GAME_READY_PROMPT_SUFFIX = """
-Tambahan untuk state game_ready — jika kamu melihat bola putih dan hole target:
-- "ball_pos":   {"x": 0, "y": 0}   koordinat TENGAH bola putih
-- "hole_pos":   {"x": 0, "y": 0}   koordinat TENGAH hole/target
-- "obstacle_warning": ""           deskripsi obstacle yang harus dihindari
-
-Sertakan field ini di JSON jika state = game_ready.
+Jika state = game_ready, WAJIB isi:
+- "ball_pos"  : koordinat TENGAH bola putih (pixel). Bola putih adalah bola yang akan ditembak.
+- "hole_pos"  : koordinat TENGAH lubang/hole target (berflag atau ditandai jelas).
+                JANGAN gunakan lubang trap/portal kecuali diperintahkan.
+- "obstacle_warning" : deskripsi singkat obstacle yang menghalangi jalur langsung
+                       (contoh: "ada bar horizontal di tengah", "koridor miring ke kiri").
+                       Kosongkan jika jalur bersih.
 """
 
 
 def _build_prompt(level_hint: int, screen_w: int, screen_h: int) -> str:
     """
-    Bangun prompt deteksi dengan optional level mapping context.
-    Kalau level_hint > 0, inject strategi mapping level tersebut.
+    Bangun prompt deteksi + inject gambaran level dari level_mapping.
+    Dipanggil untuk setiap screenshot yang dikirim ke Claude.
     """
     base = _DETECT_PROMPT_BASE + _GAME_READY_PROMPT_SUFFIX
     base += f"\n\nResolusi layar: {screen_w}x{screen_h}px"
 
     if level_hint and 1 <= level_hint <= 18:
+        # Inject full strategy context dari level_mapping.py
         ctx = get_prompt_context(level_hint)
-        base += f"\n\n{ctx}"
+        base += f"\n\n{'─'*60}\n{ctx}\n{'─'*60}"
+
         m = get_mapping(level_hint)
+
+        # Extra warning untuk timing-sensitive levels
         if m.get("timing_sensitive"):
-            base += "\n\nPERHATIAN: Level ini TIMING SENSITIVE — ada obstacle bergerak."
+            base += (
+                "\n\n⚠️  TIMING SENSITIVE: Level ini punya obstacle bergerak (contoh: windmill). "
+                "Perhatikan posisi obstacle saat screenshot diambil. "
+                "Jika obstacle menghalangi jalur, catat di obstacle_warning."
+            )
+
+        # Extra warning untuk portal/trap levels
         if m.get("uses_portal") in (True, "maybe"):
             base += (
-                "\n\nCATATAN PORTAL: Level ini mungkin punya portal/trap hole. "
-                "Bedakan hole target asli (berflag) dari portal/trap."
+                "\n\n⚠️  PORTAL/TRAP WARNING: Level ini punya kemungkinan hole trap atau portal. "
+                "Bedakan hole target asli (yang berflag/dituju) dari portal/trap. "
+                "Hanya gunakan portal jika mapping menyatakan itu route yang benar."
+            )
+
+        # Hint untuk reverse swipe
+        if m.get("reverse", True):
+            base += (
+                "\n\nCATATAN MEKANIK: Game ini pakai REVERSE SWIPE. "
+                "Untuk menembak ke suatu arah, drag dilakukan ke arah BERLAWANAN. "
+                "Contoh: untuk tembak ke atas, drag ke bawah."
             )
 
     return base
