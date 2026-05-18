@@ -1,0 +1,34 @@
+{
+  "_comment": "Fallback koordinat tombol untuk resolusi 720x1600. Ganti x/y sesuai HP kamu jika berbeda.",
+  "_device": "720x1600",
+  "play_solo": {
+    "x": 360,
+    "y": 980,
+    "label": "PLAY SOLO",
+    "note": "Tombol Play Solo di lobby menu"
+  },
+  "continue": {
+    "x": 360,
+    "y": 1100,
+    "label": "CONTINUE",
+    "note": "Tombol Continue setelah bola masuk hole"
+  },
+  "close_x": {
+    "x": 660,
+    "y": 120,
+    "label": "CLOSE / X",
+    "note": "Tombol X kanan atas untuk keluar dari level"
+  },
+  "yes_confirm": {
+    "x": 360,
+    "y": 950,
+    "label": "YES / CONFIRM",
+    "note": "Tombol Yes di popup konfirmasi keluar"
+  },
+  "play_again": {
+    "x": 360,
+    "y": 1050,
+    "label": "PLAY AGAIN",
+    "note": "Tombol Play Again di layar game over / finish"
+  }
+}
