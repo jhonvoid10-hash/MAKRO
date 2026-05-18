@@ -11,17 +11,15 @@
 import json
 import re
 import time
+import base64
 
-from config        import CLAUDE_API_KEY, CLAUDE_MODEL, CLAUDE_BASE_URL
+from config        import GROQ_API_KEY, GROQ_MODEL
 from adb_utils     import wait_for_ui, screencap_base64, tap, tap_recorded
 from level_mapping import get_prompt_context, get_mapping
 
-# Inisialisasi client — support Kiro API (ksk_...) dan Anthropic (sk-ant-...)
-import anthropic as _anthropic
-if CLAUDE_BASE_URL:
-    client = _anthropic.Anthropic(api_key=CLAUDE_API_KEY, base_url=CLAUDE_BASE_URL)
-else:
-    client = _anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+# Groq client — pakai openai-compatible SDK
+from groq import Groq
+client = Groq(api_key=GROQ_API_KEY)
 
 # ── Timeout per kondisi ──────────────────────────────────────
 TIMEOUT_PLAY_SOLO   = 20
@@ -148,28 +146,24 @@ def detect_state(b64: str,
                  screen_h: int = 1600,
                  level_hint: int = 0) -> dict:
     """
-    Kirim screenshot ke Claude, return dict state + koordinat tombol.
+    Kirim screenshot ke Groq (Llama 4 Scout vision), return dict state.
     level_hint: jika > 0, inject mapping context level tersebut ke prompt.
     Selalu return dict — tidak raise exception.
     """
-    # Gunakan _active_level global jika level_hint tidak disuplai
     effective_level = level_hint if level_hint else _active_level
-
     prompt = _build_prompt(effective_level, screen_w, screen_h)
 
     try:
-        resp = client.messages.create(
-            model=CLAUDE_MODEL,
+        resp = client.chat.completions.create(
+            model=GROQ_MODEL,
             max_tokens=500,
             messages=[{
                 "role": "user",
                 "content": [
                     {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/png",
-                            "data": b64,
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{b64}"
                         }
                     },
                     {
@@ -179,14 +173,12 @@ def detect_state(b64: str,
                 ]
             }]
         )
-        raw    = resp.content[0].text.strip()
+        raw    = resp.choices[0].message.content.strip()
         result = _parse_json(raw)
 
-        # Tambahkan level_hint ke result agar caller tahu konteks
         if effective_level:
             result["_level_hint"] = effective_level
 
-        # Log obstacle warning jika ada
         warn = result.get("obstacle_warning", "")
         if warn:
             print(f"[Vision] ⚠️  Obstacle: {warn}")

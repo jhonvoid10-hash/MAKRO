@@ -2,14 +2,16 @@
 #  config.py — Konfigurasi OutiePutt AI Vision Bot
 # ============================================================
 
-# --- KIRO / CLAUDE API ---
-# Isi dengan API key dari Kiro (ksk_...) atau Anthropic (sk-ant-...)
-CLAUDE_API_KEY = "ksk_XXXXXXXXXXXXXXXXXXXXXXXX"   # Ganti dengan ksk_... dari Kiro Settings → API Keys
-CLAUDE_MODEL   = "claude-opus-4-5"                # Model Claude yang dipakai
+# --- GROQ API ---
+# Daftar gratis di: https://console.groq.com
+# Ganti dengan API key kamu (gsk_...)
+GROQ_API_KEY   = "gsk_XXXXXXXXXXXXXXXXXXXXXXXX"   # ← Isi API key Groq kamu
+GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct"  # Model vision Groq
 
-# Kiro API endpoint (compatible dengan Anthropic SDK)
-# Kalau pakai Kiro key (ksk_...), set ini. Kalau Anthropic langsung, kosongkan.
-CLAUDE_BASE_URL = "https://api.kiro.dev/v1"       # Endpoint Kiro API
+# Legacy aliases (tidak dipakai lagi, dibiarkan untuk kompatibilitas)
+CLAUDE_API_KEY  = GROQ_API_KEY
+CLAUDE_MODEL    = GROQ_MODEL
+CLAUDE_BASE_URL = ""
 
 # --- ADB ---
 ADB_PATH        = "adb"          # Kalau adb tidak di PATH, isi full path: "C:/platform-tools/adb.exe"
