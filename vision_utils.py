@@ -13,14 +13,13 @@ import re
 import time
 import base64
 
-from config        import GEMINI_API_KEY, GEMINI_MODEL
+from config        import GROQ_API_KEY, GROQ_MODEL
 from adb_utils     import wait_for_ui, screencap_base64, tap, tap_recorded
 from level_mapping import get_prompt_context, get_mapping
 
-# Gemini client
-import google.generativeai as genai
-genai.configure(api_key=GEMINI_API_KEY)
-_model = genai.GenerativeModel(model_name=GEMINI_MODEL)
+# Groq client — pakai openai-compatible SDK
+from groq import Groq
+client = Groq(api_key=GROQ_API_KEY)
 
 # ── Timeout per kondisi ──────────────────────────────────────
 TIMEOUT_PLAY_SOLO   = 20
@@ -147,7 +146,7 @@ def detect_state(b64: str,
                  screen_h: int = 1600,
                  level_hint: int = 0) -> dict:
     """
-    Kirim screenshot ke Gemini Vision, return dict state.
+    Kirim screenshot ke Groq (Llama 4 Scout vision), return dict state.
     level_hint: jika > 0, inject mapping context level tersebut ke prompt.
     Selalu return dict — tidak raise exception.
     """
@@ -155,14 +154,26 @@ def detect_state(b64: str,
     prompt = _build_prompt(effective_level, screen_w, screen_h)
 
     try:
-        # Gemini: kirim gambar + teks dalam satu request
-        import PIL.Image
-        import io
-        img_bytes = base64.b64decode(b64)
-        img = PIL.Image.open(io.BytesIO(img_bytes))
-
-        resp = _model.generate_content([img, prompt])
-        raw  = resp.text.strip()
+        resp = client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=500,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{b64}"
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }]
+        )
+        raw    = resp.choices[0].message.content.strip()
         result = _parse_json(raw)
 
         if effective_level:

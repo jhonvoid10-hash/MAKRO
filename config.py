@@ -2,17 +2,17 @@
 #  config.py — Konfigurasi OutiePutt AI Vision Bot
 # ============================================================
 
-# --- GEMINI API ---
-# Daftar gratis di: https://aistudio.google.com/app/apikey
-# Ganti dengan API key kamu (AIza...)
-GEMINI_API_KEY = "AIzaXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"   # ← Isi API key Gemini kamu
-GEMINI_MODEL   = "gemini-2.0-flash"                          # Model Gemini Vision (gratis & cepat)
+# --- GROQ API ---
+# Daftar gratis di: https://console.groq.com
+# Ganti dengan API key kamu (gsk_...)
+GROQ_API_KEY   = "gsk_XXXXXXXXXXXXXXXXXXXXXXXX"   # ← Isi API key Groq kamu
+GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct"  # Model vision Groq
 
 # Legacy aliases — dibiarkan untuk kompatibilitas file lain
-GROQ_API_KEY    = GEMINI_API_KEY
-GROQ_MODEL      = GEMINI_MODEL
-CLAUDE_API_KEY  = GEMINI_API_KEY
-CLAUDE_MODEL    = GEMINI_MODEL
+GEMINI_API_KEY  = GROQ_API_KEY
+GEMINI_MODEL    = GROQ_MODEL
+CLAUDE_API_KEY  = GROQ_API_KEY
+CLAUDE_MODEL    = GROQ_MODEL
 CLAUDE_BASE_URL = ""
 
 # --- ADB ---

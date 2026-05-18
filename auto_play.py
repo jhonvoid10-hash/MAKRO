@@ -29,7 +29,7 @@ from vision_utils    import (wait_for_play_solo, wait_for_game_ready,
                               tap_button, get_current_state, set_active_level)
 from shot_candidates import get_candidates, total_candidates
 from level_mapping   import get_mapping, get_hint_text
-from config          import GEMINI_API_KEY
+from config          import GROQ_API_KEY
 
 # ── Konstanta ─────────────────────────────────────────────────
 TOTAL_LEVELS        = 18
@@ -558,9 +558,9 @@ def main():
     _log(f"✅ Device: {devices}")
 
     # Cek API Key
-    if not GEMINI_API_KEY or "XXXX" in GEMINI_API_KEY:
-        print("❌ GEMINI_API_KEY belum diisi di config.py!")
-        print("   Daftar gratis di: https://aistudio.google.com/app/apikey")
+    if not GROQ_API_KEY or "XXXX" in GROQ_API_KEY:
+        print("❌ GROQ_API_KEY belum diisi di config.py!")
+        print("   Daftar gratis di: https://console.groq.com")
         sys.exit(1)
 
     # Setup
