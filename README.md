@@ -1,18 +1,18 @@
-# 🏌️ MacroDroid - Auto Golf Billiard (OutiePutt)
+# 🏌️ OutiePutt AI Vision Bot
 
-Makro ini dirancang untuk memainkan game **Golf Billiard** di [https://app.outieputt.com/](https://app.outieputt.com/) secara otomatis menggunakan **MacroDroid** di Android.
+Bot otomatis untuk main game **Golf Billiard** di [app.outieputt.com](https://app.outieputt.com/) menggunakan **Claude AI Vision** + **ADB Android**.
 
----
-
-## 📱 Persyaratan
-
-| Kebutuhan | Detail |
-|-----------|--------|
-| Aplikasi | [MacroDroid](https://play.google.com/store/apps/details?id=com.arlosoft.macrodroid) versi 5.x ke atas |
-| Android | Android 7.0+ |
-| Izin | Accessibility Service harus aktif |
-| Browser | Chrome / WebView yang buka `app.outieputt.com` |
-| Resolusi | Dioptimalkan untuk **1080 x 2400** (FHD+) |
+```
+HP Android (game jalan)
+      ↓ screenshot via ADB
+PC/Laptop (Python script)
+      ↓ kirim ke Claude AI
+Claude API (analisis posisi bola & hole)
+      ↓ balik koordinat tembakan
+PC/Laptop
+      ↓ adb shell input swipe
+HP Android (bola ditembak otomatis) 🎯
+```
 
 ---
 
@@ -20,125 +20,201 @@ Makro ini dirancang untuk memainkan game **Golf Billiard** di [https://app.outie
 
 ```
 MAKRO/
-├── README.md                  ← Panduan ini
-├── outieputt_macro.macro      ← File makro utama (import ke MacroDroid)
-├── outieputt_helper.js        ← Script JS inject via ADB/WebView console
-└── koordinat_kalibrasi.txt    ← Panduan kalibrasi koordinat layar
+├── main.py              ← Script utama — jalankan ini
+├── vision.py            ← Analisis screenshot via Claude AI
+├── adb_controller.py    ← Kontrol HP via ADB (tap/swipe/screencap)
+├── config.py            ← Konfigurasi (API key, delay, dll)
+└── README.md            ← Panduan ini
 ```
 
 ---
 
-## 🚀 Cara Instalasi
+## ✅ Persyaratan
 
-### Metode 1: Import File `.macro`
+### Di PC/Laptop:
+| Kebutuhan | Cara Install |
+|-----------|-------------|
+| Python 3.10+ | [python.org](https://python.org) |
+| Library `anthropic` | `pip install anthropic` |
+| ADB (Android Debug Bridge) | [Download Platform Tools](https://developer.android.com/tools/releases/platform-tools) |
 
-1. Unduh file `outieputt_macro.macro`
-2. Buka **MacroDroid** → Menu (☰) → **Import Macro**
-3. Pilih file `.macro` yang sudah diunduh
-4. Aktifkan makro
+### Di HP Android:
+| Kebutuhan | Cara Aktifkan |
+|-----------|--------------|
+| USB Debugging | Pengaturan → Tentang HP → ketuk "Nomor Build" 7x → Opsi Developer → USB Debugging ✅ |
+| Browser Chrome | Sudah terinstall default |
+| Kabel USB | Sambungkan ke PC |
 
-### Metode 2: Buat Manual
-
-Ikuti langkah di bawah untuk membuat makro secara manual di MacroDroid.
-
----
-
-## ⚙️ Cara Kerja Makro
-
-Game OutiePutt menggunakan mekanik **klik + drag** (tarik stik biliar):
-
-```
-1. Deteksi posisi bola putih di layar
-2. Hitung sudut arah ke lubang (hole)
-3. Lakukan swipe dari bola → arah berlawanan (backswing)
-4. Lepas untuk menembak
-5. Tunggu animasi selesai
-6. Ulangi untuk hole berikutnya
-```
-
-### Strategi Tembakan:
-- **Jarak dekat** (< 30% layar): Swipe pendek ~150px
-- **Jarak sedang** (30-60% layar): Swipe sedang ~300px  
-- **Jarak jauh** (> 60% layar): Swipe panjang ~500px
+### API Key Claude:
+1. Daftar di [console.anthropic.com](https://console.anthropic.com)
+2. Buat API Key baru
+3. Isi di `config.py` → `CLAUDE_API_KEY`
 
 ---
 
-## 🗺️ Peta Koordinat (Resolusi 1080x2400)
+## 🚀 Cara Pakai
 
+### 1. Install dependencies
+```bash
+pip install anthropic
 ```
-┌─────────────────────────┐
-│  HOLE 1    │   HOLE 2   │  Y: ~400
-│  (200,400) │  (880,400) │
-├────────────┼────────────┤
-│            │            │
-│  HOLE 3    │   HOLE 4   │  Y: ~1200
-│  (200,1200)│  (880,1200)│
-├────────────┼────────────┤
-│  HOLE 5    │   HOLE 6   │  Y: ~2000
-│  (200,2000)│  (880,2000)│
-└─────────────────────────┘
 
-BOLA PUTIH (Start): ~(540, 1200)
+### 2. Setup ADB
+```bash
+# Pastikan ADB terinstall
+adb version
+
+# Cek HP terdeteksi (sambungkan USB dulu, klik Allow di HP)
+adb devices
+```
+
+### 3. Edit config.py
+```python
+CLAUDE_API_KEY = "sk-ant-xxxxxxxxxxxx"   # ← Isi API key kamu
+ADB_PATH       = "adb"                   # ← Kalau adb tidak di PATH, isi full path
+```
+
+### 4. Buka game di HP
+- Buka Chrome di HP
+- Navigasi ke `https://app.outieputt.com/`
+- Biarkan game tampil di layar
+
+### 5. Jalankan bot
+```bash
+python main.py
+```
+
+Bot akan otomatis:
+1. 📸 Screenshot layar HP
+2. 🤖 Kirim ke Claude AI untuk analisis
+3. 🎯 Hitung arah & kekuatan tembakan
+4. 📲 Swipe otomatis via ADB
+5. 🔁 Ulangi sampai 9 hole selesai
+
+---
+
+## ⚙️ Konfigurasi (`config.py`)
+
+```python
+# API
+CLAUDE_API_KEY  = "sk-ant-..."     # API Key Claude (WAJIB diisi)
+CLAUDE_MODEL    = "claude-opus-4-5" # Model AI yang dipakai
+
+# ADB
+ADB_PATH        = "adb"            # Path ke ADB executable
+DEVICE_SERIAL   = None             # None = otomatis, atau "R9WR30XXXXX"
+
+# Game
+TOTAL_HOLES     = 9                # Jumlah hole per game
+MAX_SHOTS_HOLE  = 6                # Maks tembakan per hole
+
+# Delay (detik)
+DELAY_AFTER_SHOT      = 2.5       # Tunggu bola berhenti
+DELAY_HOLE_TRANSITION = 2.0       # Tunggu transisi hole
+DELAY_GAME_LOAD       = 4.0       # Tunggu game pertama load
+
+# Debug
+DEBUG_MODE      = True             # True = simpan screenshot ke folder debug/
 ```
 
 ---
 
-## 🔧 Konfigurasi Makro di MacroDroid
+## 🧠 Cara Kerja AI Vision
 
-### TRIGGER (Pemicu)
-- **Tipe:** Shake Device (Kocok HP) ATAU Button Tile (Tile di Notification Bar)
-- **Setting:** Intensitas shake = Medium
-
-### ACTIONS (Aksi) — Urutan Eksekusi
+Setiap loop, bot melakukan:
 
 ```
-[1] Launch App → Chrome → https://app.outieputt.com/
-[2] Wait → 3000ms (tunggu game load)
-[3] Loop (9 kali = 9 holes)
-    ├─ [3.1] Tap posisi BOLA PUTIH (540, 1400)
-    ├─ [3.2] Wait 500ms
-    ├─ [3.3] Swipe: Hitung arah ke hole
-    ├─ [3.4] Wait 2000ms (tunggu animasi)
-    └─ [3.5] Tap tombol NEXT HOLE
-[4] Toast "🏌️ Game Selesai!"
+1. adb exec-out screencap -p  →  PNG bytes
+2. Encode ke Base64
+3. Kirim ke Claude API dengan prompt:
+   "Dimana posisi bola putih? Dimana posisi hole?
+    Berapa kekuatan tembakan yang tepat?"
+4. Claude balas JSON:
+   {
+     "state": "ready_to_shoot",
+     "ball":  {"x": 540, "y": 1350},
+     "hole":  {"x": 200, "y": 480},
+     "shot_power": 0.6,
+     "notes": "Ada tikungan, tembak ke kiri dulu"
+   }
+5. Hitung koordinat swipe (drag berlawanan arah hole)
+6. adb shell input swipe x1 y1 x2 y2 350
+```
+
+### State yang Dikenali Claude:
+| State | Aksi Bot |
+|-------|----------|
+| `start_screen` | Klik tombol Play/Start |
+| `loading` | Tunggu 2 detik |
+| `ready_to_shoot` | Analisis & tembak bola |
+| `ball_moving` | Tunggu bola berhenti |
+| `hole_complete` | Klik tombol Next Hole |
+| `game_complete` | Tampilkan skor, selesai |
+
+---
+
+## 📊 Contoh Output
+
+```
+╔══════════════════════════════════════════╗
+║   🏌️  OutiePutt AI Vision Bot v1.0       ║
+║   Claude AI + ADB Auto-Play              ║
+╚══════════════════════════════════════════╝
+
+✅ Device terhubung: ['R9WR30A1ZGJ']
+📐 Resolusi layar: 1080x2400
+🌐 Membuka https://app.outieputt.com/...
+
+[State] start_screen | Hole: 1/9
+▶️  Klik tombol Play di (540, 1750)
+
+[State] ready_to_shoot | Hole: 1/9 | Shot: 0
+[Shot] Bola(540,1350) → Hole(200,480)
+[Shot] Sudut: -113.5° | Power: 0.65 | Drag: 282px
+[ADB]  Swipe (540,1350) → (651,1462) | 350ms
+⏳ Tunggu bola berhenti (2.5s)...
+
+[State] hole_complete | Hole: 1/9
+🎉 HOLE 1 SELESAI! (1 tembakan)
+
+...
+
+═══════════════════════════════════════════
+🏆 HASIL AKHIR
+═══════════════════════════════════════════
+  Hole  1:  1 tembakan 🟢
+  Hole  2:  2 tembakan 🟢
+  Hole  3:  3 tembakan 🟡
+  ...
+  Total tembakan : 22
+  Rata-rata      : 2.4 tembakan/hole
+═══════════════════════════════════════════
 ```
 
 ---
 
-## 📐 Cara Kalibrasi Koordinat
-
-Karena resolusi HP berbeda-beda, lakukan kalibrasi:
-
-1. Buka game di browser
-2. Di MacroDroid: **Tools → Screen Capture** untuk lihat koordinat
-3. Catat posisi:
-   - Titik tengah bola putih
-   - Posisi tiap lubang (hole)
-   - Tombol "Next Hole" / "Play Again"
-4. Update nilai koordinat di makro
-
----
-
-## 🎯 Tips & Trik
-
-- **Aktifkan "Keep Screen On"** di MacroDroid agar layar tidak mati
-- Gunakan **MacroDroid Pro** untuk fitur UI Interaction yang lebih akurat
-- Pastikan **Brightness** cukup tinggi agar screen capture akurat
-- Mode **Do Not Disturb** agar notifikasi tidak menggangu swipe
-
----
-
-## ⚠️ Troubleshooting
+## 🔧 Troubleshooting
 
 | Masalah | Solusi |
 |---------|--------|
-| Makro tidak jalan | Pastikan Accessibility Service aktif |
-| Swipe tidak tepat | Kalibrasi ulang koordinat |
-| Game tidak loading | Tambah delay di action pertama |
-| Layar berputar | Kunci orientasi Portrait di Android |
+| `adb: command not found` | Tambahkan platform-tools ke PATH atau isi `ADB_PATH` di config |
+| `No device connected` | Pastikan USB debugging aktif & sudah klik Allow di HP |
+| `AuthenticationError` | API key salah atau expired, cek di console.anthropic.com |
+| Bot swipe meleset | Normal di awal — AI belajar dari screenshot, akurasi meningkat setelah beberapa shot |
+| Layar mati saat bot jalan | Bot otomatis set screen timeout 10 menit via ADB |
+| `hole_complete` tidak terdeteksi | Naikkan `DELAY_AFTER_SHOT` di config.py menjadi 3.0+ |
+
+---
+
+## 💡 Tips
+
+- Gunakan `DEBUG_MODE = True` untuk menyimpan semua screenshot ke folder `debug_screenshots/` — berguna untuk lihat apa yang dilihat AI
+- Pastikan **brightness layar HP cukup tinggi** agar screenshot jelas
+- Jangan gerakkan HP saat bot jalan
+- Kalau punya banyak HP, isi `DEVICE_SERIAL` di config untuk pilih device tertentu
 
 ---
 
 ## 📄 Lisensi
 
-Free to use — dibuat untuk keperluan belajar MacroDroid automation.
+Free to use — dibuat untuk belajar AI Vision + Android Automation.
