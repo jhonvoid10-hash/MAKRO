@@ -1,0 +1,218 @@
+{
+  "macro": {
+    "name": "🏌️ Auto OutiePutt Golf",
+    "description": "Makro otomatis untuk main game Golf Billiard di app.outieputt.com",
+    "version": "1.0",
+    "author": "MacroDroid Auto",
+    "enabled": true,
+    "guid": "outieputt-golf-macro-v1",
+    "local_variables": [
+      {
+        "name": "hole_count",
+        "type": "integer",
+        "default_value": 0
+      },
+      {
+        "name": "shot_power",
+        "type": "integer",
+        "default_value": 300
+      },
+      {
+        "name": "target_x",
+        "type": "integer",
+        "default_value": 540
+      },
+      {
+        "name": "target_y",
+        "type": "integer",
+        "default_value": 400
+      }
+    ],
+    "triggers": [
+      {
+        "type": "shake_device",
+        "description": "Kocok HP untuk mulai makro",
+        "sensitivity": "medium",
+        "shake_count": 2
+      },
+      {
+        "type": "tile_tap",
+        "description": "Tap Quick Tile 'Golf Auto'",
+        "tile_name": "Golf Auto"
+      }
+    ],
+    "actions": [
+      {
+        "id": 1,
+        "type": "toast_message",
+        "message": "🏌️ Auto Golf dimulai! Buka OutiePutt...",
+        "duration": "short"
+      },
+      {
+        "id": 2,
+        "type": "launch_app_url",
+        "url": "https://app.outieputt.com/",
+        "open_in": "chrome"
+      },
+      {
+        "id": 3,
+        "type": "wait",
+        "milliseconds": 4000,
+        "description": "Tunggu game load penuh"
+      },
+      {
+        "id": 4,
+        "type": "screen_on",
+        "keep_on": true
+      },
+      {
+        "id": 5,
+        "type": "set_variable",
+        "variable": "hole_count",
+        "value": 0
+      },
+      {
+        "id": 6,
+        "type": "tap_screen",
+        "description": "Tap tombol PLAY / START game",
+        "x_percent": 50,
+        "y_percent": 75,
+        "wait_after": 1500
+      },
+      {
+        "id": 7,
+        "type": "loop_start",
+        "count": 9,
+        "description": "Loop 9 holes"
+      },
+      {
+        "id": 8,
+        "type": "increment_variable",
+        "variable": "hole_count",
+        "amount": 1
+      },
+      {
+        "id": 9,
+        "type": "toast_message",
+        "message": "⛳ Hole {hole_count} / 9",
+        "duration": "short"
+      },
+      {
+        "id": 10,
+        "type": "wait",
+        "milliseconds": 1000,
+        "description": "Tunggu hole load"
+      },
+      {
+        "id": 11,
+        "type": "comment",
+        "text": "=== TEMBAKAN 1 — Aiming ke hole ==="
+      },
+      {
+        "id": 12,
+        "type": "swipe_screen",
+        "description": "Tembak bola: Tarik ke belakang lalu lepas",
+        "start_x_percent": 50,
+        "start_y_percent": 58,
+        "end_x_percent": 50,
+        "end_y_percent": 72,
+        "duration_ms": 400,
+        "wait_after": 2500
+      },
+      {
+        "id": 13,
+        "type": "wait",
+        "milliseconds": 2000,
+        "description": "Tunggu bola berhenti"
+      },
+      {
+        "id": 14,
+        "type": "comment",
+        "text": "=== CEK apakah masuk hole — jika tidak, tembak lagi ==="
+      },
+      {
+        "id": 15,
+        "type": "if_image_not_match",
+        "description": "Jika layar belum 'NEXT HOLE', tembak lagi",
+        "image_region": {
+          "x_percent": 30,
+          "y_percent": 70,
+          "width_percent": 40,
+          "height_percent": 10
+        },
+        "actions_if_true": [
+          {
+            "type": "swipe_screen",
+            "description": "Tembakan kedua (koreksi arah kiri)",
+            "start_x_percent": 50,
+            "start_y_percent": 58,
+            "end_x_percent": 55,
+            "end_y_percent": 70,
+            "duration_ms": 350,
+            "wait_after": 2500
+          },
+          {
+            "type": "wait",
+            "milliseconds": 2000
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "type": "wait",
+        "milliseconds": 1500
+      },
+      {
+        "id": 17,
+        "type": "tap_screen",
+        "description": "Tap NEXT HOLE button",
+        "x_percent": 50,
+        "y_percent": 80,
+        "wait_after": 1500
+      },
+      {
+        "id": 18,
+        "type": "tap_screen",
+        "description": "Tap NEXT HOLE (backup tap area atas)",
+        "x_percent": 50,
+        "y_percent": 70,
+        "wait_after": 500
+      },
+      {
+        "id": 19,
+        "type": "loop_end"
+      },
+      {
+        "id": 20,
+        "type": "wait",
+        "milliseconds": 2000
+      },
+      {
+        "id": 21,
+        "type": "tap_screen",
+        "description": "Tap PLAY AGAIN / Finish",
+        "x_percent": 50,
+        "y_percent": 75
+      },
+      {
+        "id": 22,
+        "type": "toast_message",
+        "message": "🎉 Selesai! Semua 9 Holes dimainkan!",
+        "duration": "long"
+      },
+      {
+        "id": 23,
+        "type": "screen_on",
+        "keep_on": false
+      }
+    ],
+    "constraints": [
+      {
+        "type": "screen_orientation",
+        "orientation": "portrait",
+        "description": "Hanya jalan saat HP Portrait"
+      }
+    ],
+    "notes": "PENTING: Sebelum pakai, kalibrasi koordinat X/Y sesuai resolusi HP kamu. Lihat README.md untuk panduan kalibrasi."
+  }
+}

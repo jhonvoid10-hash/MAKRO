@@ -1,0 +1,98 @@
+================================================================
+  PANDUAN KALIBRASI KOORDINAT - OutiePutt Golf Bot
+  https://app.outieputt.com/
+================================================================
+
+LANGKAH KALIBRASI DI MACRODROID:
+---------------------------------
+1. Buka MacroDroid → Add Macro → Add Action
+2. Pilih "UI Interaction" → "Tap Screen"
+3. Gunakan crosshair untuk tentukan titik
+4. Catat koordinat X, Y yang muncul
+5. Sesuaikan nilai di file outieputt_macro.macro
+
+================================================================
+RESOLUSI REFERENSI: 1080 x 2400 px (FHD+)
+================================================================
+
+ELEMEN UTAMA YANG PERLU DIKALIBRASI:
+--------------------------------------
+
+1. TOMBOL START/PLAY
+   ├─ Perkiraan posisi : tengah layar bawah
+   ├─ X% : 50%
+   └─ Y% : 70-80%
+
+2. POSISI BOLA PUTIH (saat siap tembak)
+   ├─ Biasanya di tengah layar
+   ├─ X% : 50%
+   └─ Y% : 55-65%
+
+3. ARAH SWIPE UNTUK TEMBAK
+   ├─ Mulai dari : posisi bola
+   ├─ Akhir ke   : arah BERLAWANAN dengan target
+   └─ Contoh: target di atas → swipe ke bawah
+
+4. TOMBOL NEXT HOLE
+   ├─ Muncul setelah bola masuk lubang
+   ├─ X% : 50%
+   └─ Y% : 75-85%
+
+================================================================
+TABEL KOORDINAT PER RESOLUSI
+================================================================
+
+--- 1080 x 2400 (Samsung S21, Pixel 6, dsb) ---
+Bola Putih    : X=540,  Y=1350
+Hole Tengah   : X=540,  Y=480
+Tombol Next   : X=540,  Y=1900
+Tombol Start  : X=540,  Y=1700
+
+--- 1080 x 2340 (Samsung A52, Redmi, dsb) ---
+Bola Putih    : X=540,  Y=1300
+Hole Tengah   : X=540,  Y=460
+Tombol Next   : X=540,  Y=1850
+Tombol Start  : X=540,  Y=1650
+
+--- 720 x 1600 (HP Mid-range) ---
+Bola Putih    : X=360,  Y=870
+Hole Tengah   : X=360,  Y=305
+Tombol Next   : X=360,  Y=1235
+Tombol Start  : X=360,  Y=1100
+
+================================================================
+CARA HITUNG SWIPE DIRECTION (Manual)
+================================================================
+
+Rumus:
+  Arah tembakan = dari bola → ke hole
+  Arah drag     = BERLAWANAN (bola ke arah kebalikan hole)
+
+Contoh:
+  Bola di (540, 1350), Hole di (540, 480)
+  → Hole ada di ATAS bola (dy negatif)
+  → Drag ke BAWAH: swipe dari (540,1350) → (540,1550)
+
+  Bola di (540, 1350), Hole di (200, 800)
+  → Hole ada di KIRI-ATAS
+  → Drag ke KANAN-BAWAH: swipe dari (540,1350) → (700,1550)
+
+================================================================
+PANJANG SWIPE = KEKUATAN TEMBAKAN
+================================================================
+
+  Jarak pendek (hole dekat)  : drag 100-150 px
+  Jarak sedang               : drag 200-300 px
+  Jarak jauh (hole jauh)     : drag 350-500 px
+
+================================================================
+CATATAN PENTING
+================================================================
+
+✅ Kunci orientasi HP ke Portrait sebelum pakai makro
+✅ Pastikan brightness layar cukup terang
+✅ Nonaktifkan auto-rotate
+✅ Mode Jangan Ganggu (DND) agar notifikasi tidak masuk
+✅ Pastikan Accessibility MacroDroid sudah diaktifkan
+
+================================================================
